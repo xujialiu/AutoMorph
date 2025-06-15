@@ -32,6 +32,7 @@ from skimage.morphology import skeletonize
 import cv2
 import pandas as pd
 
+
 class Retina(object):
     """
     Retina class that internally contains a matrix with the image data for a retinal image, it
@@ -40,29 +41,32 @@ class Retina(object):
     :param image: a numpy array with the image data
     :param image_path: path to an image to be open
     """
+
     @staticmethod
     def _open_image(img_path):
-        return cv2.resize(io.imread(img_path), dsize=(912, 912), interpolation=cv2.INTER_CUBIC)
+        return cv2.resize(
+            io.imread(img_path), dsize=(912, 912), interpolation=cv2.INTER_CUBIC
+        )
 
     @staticmethod
     def get_base64_image(image: np.ndarray, is_luminance: bool = True):
         if is_luminance:
-            temp_image = Image.fromarray(image.astype('uint8'), 'L')
+            temp_image = Image.fromarray(image.astype("uint8"), "L")
         else:
             temp_image = Image.fromarray(image)
         buffer = BytesIO()
         temp_image.save(buffer, format="png")
-        return str(base64.b64encode(buffer.getvalue()).decode('utf-8'))
+        return str(base64.b64encode(buffer.getvalue()).decode("utf-8"))
 
-    def __init__(self, image: np.ndarray, image_path: str, store_path:str):
-        #print('!!!',image_path)
-        #print('@@@@',store_path)
-        
+    def __init__(self, image: np.ndarray, image_path: str, store_path: str):
+        # print('!!!',image_path)
+        # print('@@@@',store_path)
+
         if image is None:
             self.np_image = self._open_image(image_path)
-            self.segmentation_path = store_path+image_path.split('_skeleton')[1]
+            self.segmentation_path = store_path + image_path.split("_skeleton")[1]
             self.vessel_image = self._open_image(self.segmentation_path)
-            
+
             _, file = path.split(image_path)
             self._file_name = file
         else:
@@ -71,31 +75,32 @@ class Retina(object):
 
             self.segmentation_path = store_path
             self.vessel_image = self._open_image(self.segmentation_path)
-            
-        
-        if '/' in image_path:
-            img_name = image_path.split('_skeleton/')[1]
-        elif 'window' in image_path:
-            img_name = image_path.split('window{}')[1]
+
+        if "/" in image_path:
+            img_name = image_path.split("_skeleton/")[1]
+        elif "window" in image_path:
+            img_name = image_path.split("window{}")[1]
         else:
             img_name = image_path
-        
-        resolution_list = pd.read_csv(store_path.split('M2')[0]+'M0/crop_info.csv')
-        
-        self.resolution = resolution_list['Scale_resolution'][resolution_list['Name']==img_name].values[0]
-        
+
+        resolution_list = pd.read_csv(store_path.split("M2")[0] + "M0/crop_info.csv")
+
+        self.resolution = resolution_list["Scale_resolution"][
+            resolution_list["Name"] == img_name
+        ].values[0]
+
         # average value
-        #self.resolution = 0.83
-        
+        # self.resolution = 0.83
+
         self.segmented = False
         self.old_image = None
-        #self.np_image = color.rgb2gray(self.np_image)
+        # self.np_image = color.rgb2gray(self.np_image)
         self.original_base64 = self.get_base64_image(self.np_image)
         self.depth = 1
         self.shape = self.np_image.shape
 
-##################################################################################################
-# Image Processing functions
+    ##################################################################################################
+    # Image Processing functions
 
     def threshold_image(self):
         """Applies a thresholding algorithm to the contained image."""
@@ -109,7 +114,9 @@ class Retina(object):
         done using min_val and max_val
         """
         self._copy()
-        self.np_image = feature.canny(self.np_image, low_threshold=min_val, high_threshold=max_val)
+        self.np_image = feature.canny(
+            self.np_image, low_threshold=min_val, high_threshold=max_val
+        )
 
     def apply_thinning(self):
         """Applies a thinning algorithm on the stored image"""
@@ -142,11 +149,12 @@ class Retina(object):
         self.np_image = np.pad(
             self.np_image,
             ((0, max_value - self.shape[0]), (0, max_value - self.shape[1])),
-            'constant',
-            constant_values=(0, 0))
+            "constant",
+            constant_values=(0, 0),
+        )
         self.shape = self.np_image.shape
 
-    def reshape_by_window(self, window: int, is_percentage: bool=False) -> int:
+    def reshape_by_window(self, window: int, is_percentage: bool = False) -> int:
         """
         Reshapes the internal image to be able to be divided by the given window size
         :param window: an integer with the window size. Considered as a square
@@ -157,17 +165,27 @@ class Retina(object):
         dimension = window
         if is_percentage:
             # get the smallest dimension
-            selected_dimension = self.shape[0] if self.shape[0] < self.shape[1] else self.shape[1]
-            dimension = int(math.floor(selected_dimension/window))
+            selected_dimension = (
+                self.shape[0] if self.shape[0] < self.shape[1] else self.shape[1]
+            )
+            dimension = int(math.floor(selected_dimension / window))
             # make it even
             dimension += dimension % 2
-            x_pixels = (math.ceil(self.shape[0]/dimension)*dimension) - self.shape[0]
-            y_pixels = (math.ceil(self.shape[1]/dimension)*dimension) - self.shape[1]
+            x_pixels = (math.ceil(self.shape[0] / dimension) * dimension) - self.shape[
+                0
+            ]
+            y_pixels = (math.ceil(self.shape[1] / dimension) * dimension) - self.shape[
+                1
+            ]
         else:
             x_pixels = (math.ceil(self.shape[0] / window) * window) - self.shape[0]
             y_pixels = (math.ceil(self.shape[1] / window) * window) - self.shape[1]
         self.np_image = np.pad(
-            self.np_image, ((0, x_pixels), (0, y_pixels)), 'constant', constant_values=(0, 0))
+            self.np_image,
+            ((0, x_pixels), (0, y_pixels)),
+            "constant",
+            constant_values=(0, 0),
+        )
         self.shape = self.np_image.shape
 
         return dimension
@@ -213,12 +231,13 @@ class Retina(object):
         Reshapes the internal image to fix erros with retinal images without borders
         :param size: an integer with the border size.
         """
-        self.np_image = np.pad(self.np_image, pad_width=size, mode='constant', constant_values=0)
+        self.np_image = np.pad(
+            self.np_image, pad_width=size, mode="constant", constant_values=0
+        )
         self.shape = self.np_image.shape
 
-
-##################################################################################################
-# I/O functions
+    ##################################################################################################
+    # I/O functions
 
     def _copy(self):
         self.old_image = copy(self.np_image)
@@ -264,12 +283,14 @@ class Window(Retina):
     a ROI (Region of Interest) that extends the Retina class
     TODO: Add support for more than depth=1 images (only if needed)
     """
+
     def __init__(self, image: Retina, dimension, method="separated", min_pixels=10):
         super(Window, self).__init__(
-            image.np_image,
-            image.filename,
-            image.segmentation_path)
-        self.windows, self.w_pos = Window.create_windows(image, dimension, method, min_pixels)
+            image.np_image, image.filename, image.segmentation_path
+        )
+        self.windows, self.w_pos = Window.create_windows(
+            image, dimension, method, min_pixels
+        )
         if len(self.windows) == 0:
             raise ValueError("No windows were created for the given retinal image")
         self.shape = self.windows.shape
@@ -293,7 +314,10 @@ class Window(Retina):
         self._tags = value
         if value.shape[0] != self.shape[0]:
             raise ValueError(
-                "Wrong set of tags, expected {} got {}".format(self.shape[0], value.shape[0]))
+                "Wrong set of tags, expected {} got {}".format(
+                    self.shape[0], value.shape[0]
+                )
+            )
 
     @property
     def mode(self) -> str:
@@ -330,11 +354,15 @@ class Window(Retina):
         if window_id >= self.windows.shape[0]:
             raise ValueError(
                 "Window value '{}' is more than allowed ({})".format(
-                    window_id, self.windows.shape[0]))
+                    window_id, self.windows.shape[0]
+                )
+            )
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             io.imsave(
-                output_folder + self._window_filename(window_id), self.windows[window_id, 0])
+                output_folder + self._window_filename(window_id),
+                self.windows[window_id, 0],
+            )
 
     class _WindowIterator:
         def __init__(self, window: np.ndarray):
@@ -358,13 +386,13 @@ class Window(Retina):
     def _create_tag_image(dx: int, dy: int, tags: list) -> np.ndarray:
         image = np.empty((dx, dy))
         boxes = len(tags) % 2 + len(tags)
-        box_count = (boxes // 2)
+        box_count = boxes // 2
         tag_x = dx // box_count
         tag_y = dy // 2
         for i in range(0, boxes):
             cx = (i % box_count) * tag_x
             cy = (i // box_count) * tag_y
-            image[cx:cx+tag_x, cy:cy+tag_y] = tags[i]
+            image[cx : cx + tag_x, cy : cy + tag_y] = tags[i]
         return image
 
     def view_window(self, w_id, layer):  # pragma: no cover
@@ -384,11 +412,13 @@ class Window(Retina):
 
         for i in range(0, self.tags.shape[0]):
             self.windows[i, -1] = self._create_tag_image(
-                self.windows.shape[2], self.windows.shape[3], self.tags[i])
+                self.windows.shape[2], self.windows.shape[3], self.tags[i]
+            )
 
     @staticmethod
     def create_windows(
-            image: Retina, dimension, method="separated", min_pixels=10) -> tuple:
+        image: Retina, dimension, method="separated", min_pixels=10
+    ) -> tuple:
         """
         Creates multiple square windows of the given dimension for the current retinal image.
         Empty windows (i.e. only background) will be ignored
@@ -409,17 +439,25 @@ class Window(Retina):
         if image.shape[0] % dimension != 0 or image.shape[1] % dimension != 0:
             raise ValueError(
                 "image shape is not the same or the dimension value does not divide the image "
-                "completely: sx:{} sy:{} dim:{}".format(image.shape[0], image.shape[1], dimension))
+                "completely: sx:{} sy:{} dim:{}".format(
+                    image.shape[0], image.shape[1], dimension
+                )
+            )
 
         #                      window_count
         windows = []
         windows_position = []
         window_id = 0
-        img_dimension = image.shape[0] if image.shape[0] > image.shape[1] else image.shape[1]
+        img_dimension = (
+            image.shape[0] if image.shape[0] > image.shape[1] else image.shape[1]
+        )
         if method == "separated":
             windows = np.empty(
-                [(img_dimension // dimension) ** 2, image.depth, dimension, dimension])
-            windows_position = np.empty([(img_dimension // dimension) ** 2, 2, 2], dtype=np.int32)
+                [(img_dimension // dimension) ** 2, image.depth, dimension, dimension]
+            )
+            windows_position = np.empty(
+                [(img_dimension // dimension) ** 2, 2, 2], dtype=np.int32
+            )
             for x in range(0, image.shape[0], dimension):
                 for y in range(0, image.shape[1], dimension):
                     cw = windows_position[window_id]
@@ -427,19 +465,29 @@ class Window(Retina):
                     cw[1, 0] = x + dimension
                     cw[0, 1] = y
                     cw[1, 1] = y + dimension
-                    t_window = image.np_image[cw[0, 0]:cw[1, 0], cw[0, 1]:cw[1, 1]]
+                    t_window = image.np_image[cw[0, 0] : cw[1, 0], cw[0, 1] : cw[1, 1]]
                     if t_window.sum() >= min_pixels:
                         windows[window_id, 0] = t_window
                         window_id += 1
         elif method == "combined":
             new_dimension = dimension // 2
             windows = np.empty(
-                [(img_dimension // new_dimension) ** 2, image.depth, dimension, dimension])
-            windows_position = np.empty([(img_dimension // new_dimension) ** 2, 2, 2], dtype=np.int32)
+                [
+                    (img_dimension // new_dimension) ** 2,
+                    image.depth,
+                    dimension,
+                    dimension,
+                ]
+            )
+            windows_position = np.empty(
+                [(img_dimension // new_dimension) ** 2, 2, 2], dtype=np.int32
+            )
             if image.shape[0] % new_dimension != 0:
                 raise ValueError(
-                    "Dimension value '{}' is not valid, choose a value that its half value can split the image evenly"
-                    .format(dimension))
+                    "Dimension value '{}' is not valid, choose a value that its half value can split the image evenly".format(
+                        dimension
+                    )
+                )
             for x in range(0, image.shape[0] - new_dimension, new_dimension):
                 for y in range(0, image.shape[1] - new_dimension, new_dimension):
                     cw = windows_position[window_id]
@@ -447,7 +495,7 @@ class Window(Retina):
                     cw[1, 0] = x + dimension
                     cw[0, 1] = y
                     cw[1, 1] = y + dimension
-                    t_window = image.np_image[cw[0, 0]:cw[1, 0], cw[0, 1]:cw[1, 1]]
+                    t_window = image.np_image[cw[0, 0] : cw[1, 0], cw[0, 1] : cw[1, 1]]
                     if t_window.sum() >= min_pixels:
                         windows[window_id, 0] = t_window
                         window_id += 1
@@ -457,7 +505,9 @@ class Window(Retina):
                 windows_position = []
             else:
                 windows = np.resize(
-                    windows, [window_id, windows.shape[1], windows.shape[2], windows.shape[3]])
+                    windows,
+                    [window_id, windows.shape[1], windows.shape[2], windows.shape[3]],
+                )
                 windows_position = np.resize(windows_position, [window_id, 2, 2])
 
         #  print('created ' + str(window_id) + " windows")
@@ -509,9 +559,8 @@ def detect_vessel_border(image: Retina, ignored_pixels=1):
             active_neighbours.append([x_more, y_more])
 
         return active_neighbours
-    
-    
-    def intersection(mask,image, it_x, it_y):
+
+    def intersection(mask, image, it_x, it_y):
         """
         Remove the intersection in case the whole vessel is too long
         """
@@ -521,21 +570,22 @@ def detect_vessel_border(image: Retina, ignored_pixels=1):
         x_more = min(vessel_.shape[0] - 1, it_x + 1)
         y_more = min(vessel_.shape[1] - 1, it_y + 1)
 
-        active_neighbours = (vessel_[x_less, y_less]>0).astype('float')+ \
-                            (vessel_[x_less, it_y]>0).astype('float')+ \
-                            (vessel_[x_less, y_more]>0).astype('float')+ \
-                            (vessel_[it_x, y_less]>0).astype('float')+ \
-                            (vessel_[it_x, y_more]>0).astype('float')+ \
-                            (vessel_[x_more, y_less]>0).astype('float')+ \
-                            (vessel_[x_more, it_y]>0).astype('float')+ \
-                            (vessel_[x_more, y_more]>0).astype('float')
+        active_neighbours = (
+            (vessel_[x_less, y_less] > 0).astype("float")
+            + (vessel_[x_less, it_y] > 0).astype("float")
+            + (vessel_[x_less, y_more] > 0).astype("float")
+            + (vessel_[it_x, y_less] > 0).astype("float")
+            + (vessel_[it_x, y_more] > 0).astype("float")
+            + (vessel_[x_more, y_less] > 0).astype("float")
+            + (vessel_[x_more, it_y] > 0).astype("float")
+            + (vessel_[x_more, y_more] > 0).astype("float")
+        )
 
         if active_neighbours > 2:
-            cv2.circle(mask,(it_y,it_x),radius=1,color=(0,0,0),thickness=-1)
-        
+            cv2.circle(mask, (it_y, it_x), radius=1, color=(0, 0, 0), thickness=-1)
 
-        return mask,active_neighbours        
-        
+        return mask, active_neighbours
+
     '''
     # original remove x duplicate
     def vessel_extractor(window, start_x, start_y):
@@ -579,7 +629,7 @@ def detect_vessel_border(image: Retina, ignored_pixels=1):
 
         return [vessel_x, vessel_y]
     '''
-    
+
     # 2021/10/31 remove setting of the sort & x duplication
     def vessel_extractor(window, start_x, start_y):
         """
@@ -601,7 +651,7 @@ def detect_vessel_border(image: Retina, ignored_pixels=1):
                 pending_pixels.extend(neighbours(pixel, window))
 
         # sort by x position
-        '''
+        """
         vessel.sort(key=lambda item: item[0])
 
         # remove all repeating x values???????????
@@ -613,38 +663,35 @@ def detect_vessel_border(image: Retina, ignored_pixels=1):
             else:
                 filtered_vessel.append(pixel)
                 current_x = pixel[0]
-        '''
+        """
         filtered_vessel = vessel
         vessel_x = []
         vessel_y = []
         for pixel in filtered_vessel:
             vessel_x.append(pixel[0])
             vessel_y.append(pixel[1])
-            
 
         return [vessel_x, vessel_y]
-    
-    
+
     vessels = []
     active_neighbours_list = []
     width_list_all = []
     mask_ = np.ones((image.np_image.shape))
-    
+
     for it_x in range(ignored_pixels, image.shape[0] - ignored_pixels):
         for it_y in range(ignored_pixels, image.shape[1] - ignored_pixels):
             if image.np_image[it_x, it_y] > 0:
-                mask,active_neighbours = intersection(mask_,image, it_x, it_y)
+                mask, active_neighbours = intersection(mask_, image, it_x, it_y)
                 active_neighbours_list.append(active_neighbours)
-    
+
     image.np_image = image.np_image * mask
-    
-    #cv2.imwrite('./intersection_test/{}.png'.format(image._file_name),image.np_image)
-    
+
+    # cv2.imwrite('./intersection_test/{}.png'.format(image._file_name),image.np_image)
+
     for it_x in range(ignored_pixels, image.shape[0] - ignored_pixels):
         for it_y in range(ignored_pixels, image.shape[1] - ignored_pixels):
             if image.np_image[it_x, it_y] > 0:
                 vessel = vessel_extractor(image, it_x, it_y)
                 vessels.append(vessel)
-    
-                
+
     return vessels

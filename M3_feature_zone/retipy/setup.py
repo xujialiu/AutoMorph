@@ -12,7 +12,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# along with this program.  Isf not, see <http://www.gnu.org/licenses/>.
 
 from setuptools import setup, find_packages
 
@@ -25,13 +25,22 @@ setup(
     license="GPLv3",
     python="image-processing python retina",
     url="https://github.com/alevalv/retipy",
-
     classifiers=[
-        'Development Status :: 3 - Alpha',
-        'Intended Audience :: Developers',
-        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-        'Programming Language :: Python :: 3.7'
+        "Development Status :: 3 - Alpha",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+        "Programming Language :: Python :: 3.7",
     ],
     packages=find_packages(exclude=["test", "util"]),
-    install_requires=['matplotlib', 'numpy', 'pillow', 'scikit-image', 'scipy', 'h5py', 'scikit-learn', 'tensorflow', 'keras']
-    )
+    install_requires=[
+        "matplotlib",
+        "numpy",
+        "pillow",
+        "scikit-image",
+        "scipy",
+        "h5py",
+        "scikit-learn",
+        "tensorflow",
+        "keras",
+    ],
+)

@@ -26,21 +26,23 @@ from PIL import Image
 import time
 import cv2
 
-def fractal_dimension(Z):
 
-    assert(len(Z.shape) == 2)
+def fractal_dimension(Z):
+    assert len(Z.shape) == 2
 
     def boxcount(Z, k):
         S = np.add.reduceat(
             np.add.reduceat(Z, np.arange(0, Z.shape[0], k), axis=0),
-                               np.arange(0, Z.shape[1], k), axis=1)
+            np.arange(0, Z.shape[1], k),
+            axis=1,
+        )
 
-        return len(np.where((S > 0) & (S < k*k))[0])
+        return len(np.where((S > 0) & (S < k * k))[0])
 
     p = min(Z.shape)
-    n = 2**np.floor(np.log(p)/np.log(2))
-    n = int(np.log(n)/np.log(2))
-    sizes = 2**np.arange(n, 1, -1)
+    n = 2 ** np.floor(np.log(p) / np.log(2))
+    n = int(np.log(n) / np.log(2))
+    sizes = 2 ** np.arange(n, 1, -1)
     counts = []
     for size in sizes:
         counts.append(boxcount(Z, size))
@@ -49,44 +51,44 @@ def fractal_dimension(Z):
     return -coeffs[0]
 
 
-
 def vessel_density(Z):
+    assert len(Z.shape) == 2
+    vessel_total_count = np.sum(Z == 1)
+    pixel_total_count = Z.shape[0] * Z.shape[1]
 
-    assert(len(Z.shape) == 2)
-    vessel_total_count = np.sum(Z==1)
-    pixel_total_count = Z.shape[0]*Z.shape[1]
-    
-    return vessel_total_count/pixel_total_count
+    return vessel_total_count / pixel_total_count
 
 
 def global_cal(retina):
     vessel_ = retina.vessel_image
     skeleton = retina.np_image
-    
-    if np.max(vessel_)>1:
-        vessel_=vessel_/255
-    if np.max(skeleton)>1:
-        skeleton=skeleton/255
-        
+
+    if np.max(vessel_) > 1:
+        vessel_ = vessel_ / 255
+    if np.max(skeleton) > 1:
+        skeleton = skeleton / 255
+
     FD_boxcounting = fractal_dimension(vessel_)
     VD = vessel_density(vessel_)
-    width = np.sum(vessel_)/np.sum(skeleton)*retina.resolution
-    
-    return FD_boxcounting,VD,width
+    width = np.sum(vessel_) / np.sum(skeleton) * retina.resolution
+
+    return FD_boxcounting, VD, width
 
 
-def Hubbard_cal(w1,w2):
+def Hubbard_cal(w1, w2):
+    w_artery = np.sqrt(
+        0.87 * np.square(w1) + 1.01 * np.square(w2) - 0.22 * w1 * w2 - 10.76
+    )
+    w_vein = np.sqrt(0.72 * np.square(w1) + 0.91 * np.square(w2) + 450.05)
 
-    w_artery = np.sqrt(0.87*np.square(w1) + 1.01*np.square(w2) - 0.22*w1*w2 - 10.76) 
-    w_vein = np.sqrt(0.72*np.square(w1)+0.91*np.square(w2)+450.05)
-    
-    return w_artery,w_vein
+    return w_artery, w_vein
 
-def Knudtson_cal(w1,w2):
-    w_artery = 0.88*np.sqrt(np.square(w1) + np.square(w2)) 
-    w_vein = 0.95*np.sqrt(np.square(w1) + np.square(w2)) 
-    
-    return w_artery,w_vein
+
+def Knudtson_cal(w1, w2):
+    w_artery = 0.88 * np.sqrt(np.square(w1) + np.square(w2))
+    w_vein = 0.95 * np.sqrt(np.square(w1) + np.square(w2))
+
+    return w_artery, w_vein
 
 
 def _distance_2p(x1, y1, x2, y2):
@@ -202,9 +204,9 @@ def linear_regression_tortuosity(x, y, sampling_size=6, retry=True):
         min_point_x = x[0]
         min_point_y = y[0]
 
-        slope = (y[len(y) - 1] - min_point_y)/(x[len(x) - 1] - min_point_x)
+        slope = (y[len(y) - 1] - min_point_y) / (x[len(x) - 1] - min_point_x)
 
-        y_intercept = min_point_y - slope*min_point_x
+        y_intercept = min_point_y - slope * min_point_x
 
         sample_distance = max(round(len(x) / sampling_size), 1)
 
@@ -239,8 +241,6 @@ def linear_regression_tortuosity(x, y, sampling_size=6, retry=True):
     return r_2
 
 
-
-
 def distance_measure_tortuosity(x, y):
     """
     Distance measure tortuosity defined in:
@@ -255,8 +255,7 @@ def distance_measure_tortuosity(x, y):
     if len(x) < 2:
         raise ValueError("Given curve must have at least 2 elements")
 
-    return _curve_length(x, y)/_chord_length(x, y)
-
+    return _curve_length(x, y) / _chord_length(x, y)
 
 
 def distance_inflection_count_tortuosity(x, y):
@@ -268,7 +267,9 @@ def distance_inflection_count_tortuosity(x, y):
     :param y: the list of y points of the curve
     :return: the inflection count tortuosity
     """
-    return distance_measure_tortuosity(x, y) * (len(_detect_inflection_points(x, y)) + 1), len(_detect_inflection_points(x, y))
+    return distance_measure_tortuosity(x, y) * (
+        len(_detect_inflection_points(x, y)) + 1
+    ), len(_detect_inflection_points(x, y))
 
 
 def fractal_tortuosity(retinal_image: Retina):
@@ -308,10 +309,14 @@ def tortuosity_density(x, y):
         segment_y = y[starting_position:in_point]
         chord = _chord_length(segment_x, segment_y)
         if chord:
-            sum_segments += _curve_length(segment_x, segment_y) / _chord_length(segment_x, segment_y) - 1
+            sum_segments += (
+                _curve_length(segment_x, segment_y)
+                / _chord_length(segment_x, segment_y)
+                - 1
+            )
         starting_position = in_point
 
-    return (n - 1)/n + (1/_curve_length(x, y))*sum_segments
+    return (n - 1) / n + (1 / _curve_length(x, y)) * sum_segments
 
 
 def squared_curvature_tortuosity(x, y):
@@ -323,13 +328,13 @@ def squared_curvature_tortuosity(x, y):
     :return: the squared curvature tortuosity of the given curve
     """
     curvatures = []
-    x_values = range(1, len(x)-1)
+    x_values = range(1, len(x) - 1)
     for i in x_values:
         x_1 = m.derivative1_centered_h1(i, x)
         x_2 = m.derivative2_centered_h1(i, x)
         y_1 = m.derivative1_centered_h1(i, y)
         y_2 = m.derivative2_centered_h1(i, y)
-        curvatures.append((x_1*y_2 - x_2*y_1)/(y_1**2 + x_1**2)**1.5)
+        curvatures.append((x_1 * y_2 - x_2 * y_1) / (y_1**2 + x_1**2) ** 1.5)
     return abs(np.trapz(curvatures, x_values))
 
 
@@ -345,7 +350,7 @@ def smooth_tortuosity_cubic(x, y):
     return spline(x[0])
 
 
-'''
+"""
 #2021/10/31 colour visualisation
 def width_measurement(x, y, vessel_map):    
     
@@ -364,56 +369,65 @@ def width_measurement(x, y, vessel_map):
     #width_list.append(width*2)
         
     return width_list
-'''
+"""
 
 
-
-def width_measurement(x, y, vessel_map):    
-    
+def width_measurement(x, y, vessel_map):
     width_list = []
-    
+
     for i in range(0, len(x) - 1):
         width = 0
         width_matrix = 1
         width_mask = np.zeros((vessel_map.shape))
         width_cal = 0
-    
+
         while width_matrix:
-            width+=1
-            cv2.circle(width_mask,(y[i],x[i]),radius=width,color=(255,255,255),thickness=-1)
-            masked_vessel = vessel_map[width_mask>0]
-            width_matrix = np.all(masked_vessel>0)
-            
-            #2021/10/31 test
-            #test_case = vessel_map.copy()[...,np.newaxis]
-            #test_case = np.concatenate((test_case,test_case,test_case),axis=2)
-            
-        #cv2.circle(test_case,(y[i],x[i]),radius=width,color=(0,0,255),thickness=-1)
-        #cv2.imwrite('./intersection_test/test_{}_{}_{}.png'.format(y[i],x[i],width),test_case)
-        #print(width*2)
-        
-        #print(np.shape(masked_vessel))
-        #print(np.unique(masked_vessel))
-        #print('255 is ',np.sum(masked_vessel==255))
-        #print('0000 is ',np.sum(masked_vessel==0))
-        #print('00000 is ',np.where(masked_vessel==0))
-        
-        if np.sum(masked_vessel==0)==1:
-            width_cal = width*2
-        elif np.sum(masked_vessel==0)==2:
-            width_cal = width*2-1
-        elif np.sum(masked_vessel==0)==3:
-            width_cal = width*2-1
+            width += 1
+            cv2.circle(
+                width_mask,
+                (y[i], x[i]),
+                radius=width,
+                color=(255, 255, 255),
+                thickness=-1,
+            )
+            masked_vessel = vessel_map[width_mask > 0]
+            width_matrix = np.all(masked_vessel > 0)
+
+            # 2021/10/31 test
+            # test_case = vessel_map.copy()[...,np.newaxis]
+            # test_case = np.concatenate((test_case,test_case,test_case),axis=2)
+
+        # cv2.circle(test_case,(y[i],x[i]),radius=width,color=(0,0,255),thickness=-1)
+        # cv2.imwrite('./intersection_test/test_{}_{}_{}.png'.format(y[i],x[i],width),test_case)
+        # print(width*2)
+
+        # print(np.shape(masked_vessel))
+        # print(np.unique(masked_vessel))
+        # print('255 is ',np.sum(masked_vessel==255))
+        # print('0000 is ',np.sum(masked_vessel==0))
+        # print('00000 is ',np.where(masked_vessel==0))
+
+        if np.sum(masked_vessel == 0) == 1:
+            width_cal = width * 2
+        elif np.sum(masked_vessel == 0) == 2:
+            width_cal = width * 2 - 1
+        elif np.sum(masked_vessel == 0) == 3:
+            width_cal = width * 2 - 1
         else:
-            width_cal = width*2
-            
+            width_cal = width * 2
+
         width_list.append(width_cal)
-        
+
     return width_list
 
 
-
-def evaluate_window(window: Window, min_pixels_per_vessel=10, sampling_size=6, r2_threshold=0.80, store_path='/home/jupyter/Deep_rias/Results/M2/artery_vein/vein_binary_process'):  # pragma: no cover
+def evaluate_window(
+    window: Window,
+    min_pixels_per_vessel=10,
+    sampling_size=6,
+    r2_threshold=0.80,
+    store_path="/home/jupyter/Deep_rias/Results/M2/artery_vein/vein_binary_process",
+):  # pragma: no cover
     """
     Evaluates a Window object and sets the tortuosity values in the tag parameter.
     :param window: The window object to be evaluated
@@ -421,34 +435,37 @@ def evaluate_window(window: Window, min_pixels_per_vessel=10, sampling_size=6, r
     :param sampling_size:
     :param r2_threshold:
     """
-    #tags = np.empty([window.shape[0], 7])
+    # tags = np.empty([window.shape[0], 7])
     tags = np.empty([window.shape[0], 13])
     # preemptively switch to pytorch.
     window.mode = window.mode_pytorch
-    #tft = fractal_tortuosity(window)
+    # tft = fractal_tortuosity(window)
     tft = 0
     vessel_total_count = 0
     pixel_total_count = 0
-    FD_binary,VD_binary,Average_width = 0,0,0
+    FD_binary, VD_binary, Average_width = 0, 0, 0
 
     for i in range(0, window.shape[0], 1):
-        
         bw_window = window.windows[i, 0, :, :]
-        
-        vessel_total_count = np.sum(bw_window==1)
-        pixel_total_count = bw_window.shape[0]*bw_window.shape[1]
-        
-        retina = Retina(bw_window, "window{}" + window.filename,store_path=store_path+window.filename)
+
+        vessel_total_count = np.sum(bw_window == 1)
+        pixel_total_count = bw_window.shape[0] * bw_window.shape[1]
+
+        retina = Retina(
+            bw_window,
+            "window{}" + window.filename,
+            store_path=store_path + window.filename,
+        )
         vessel_map = retina.vessel_image
-        
-        FD_binary,VD_binary,Average_width = global_cal(retina)
-        
+
+        FD_binary, VD_binary, Average_width = global_cal(retina)
+
         vessels = detect_vessel_border(retina)
         vessel_count = 0
         vessel_count_1 = 0
         bifurcation_t = 0
         t1, t2, t3, t4, td, tfi, tcurve = 0, 0, 0, 0, 0, 0, 0
-        vessel_density,average_caliber = 0, 0
+        vessel_density, average_caliber = 0, 0
         w1 = 0
         w1_list = []
         w1_list_average = []
@@ -458,27 +475,27 @@ def evaluate_window(window: Window, min_pixels_per_vessel=10, sampling_size=6, r
             vessel_count_1 += 1
 
             if len(vessel[0]) > min_pixels_per_vessel:
-                s1=time.time()
+                s1 = time.time()
                 vessel_count += 1
-                
-                s2=time.time()
+
+                s2 = time.time()
                 t2 += distance_measure_tortuosity(vessel[0], vessel[1])
-                
-                s4=time.time()
+
+                s4 = time.time()
                 t4 += squared_curvature_tortuosity(vessel[0], vessel[1])
-                
-                s5=time.time()
+
+                s5 = time.time()
                 td += tortuosity_density(vessel[0], vessel[1])
-                
-                s6=time.time()
-                
+
+                s6 = time.time()
+
                 vessel_count_list.append(vessel_count)
-                #tfi += fractal_tortuosity_curve(vessel[0], vessel[1])
-                s7=time.time()
-        
+                # tfi += fractal_tortuosity_curve(vessel[0], vessel[1])
+                s7 = time.time()
+
         if vessel_count > 0:
-            t2 = t2/vessel_count
-            t4 = t4/vessel_count
-            td = td/vessel_count
-    
-    return FD_binary,VD_binary,Average_width, t2, t4, td
+            t2 = t2 / vessel_count
+            t4 = t4 / vessel_count
+            td = td / vessel_count
+
+    return FD_binary, VD_binary, Average_width, t2, t4, td

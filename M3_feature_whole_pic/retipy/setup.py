@@ -25,13 +25,22 @@ setup(
     license="GPLv3",
     python="image-processing python retina",
     url="https://github.com/alevalv/retipy",
-
     classifiers=[
-        'Development Status :: 3 - Alpha',
-        'Intended Audience :: Developers',
-        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-        'Programming Language :: Python :: 3.7'
+        "Development Status :: 3 - Alpha",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+        "Programming Language :: Python :: 3.7",
     ],
     packages=find_packages(exclude=["test", "util"]),
-    install_requires=['matplotlib', 'numpy', 'pillow', 'scikit-image', 'scipy', 'h5py', 'scikit-learn', 'tensorflow', 'keras']
-    )
+    install_requires=[
+        "matplotlib",
+        "numpy",
+        "pillow",
+        "scikit-image",
+        "scipy",
+        "h5py",
+        "scikit-learn",
+        "tensorflow",
+        "keras",
+    ],
+)

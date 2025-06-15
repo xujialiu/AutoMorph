@@ -28,21 +28,30 @@ from retipy import tortuosity
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "-a", "--algorithm", default="TD", help="the tortuosity algorithm to apply")
+    "-a", "--algorithm", default="TD", help="the tortuosity algorithm to apply"
+)
 parser.add_argument(
-    "-t", "--threshold", default=0.5, type=float, help="threshold to consider a window as tortuous")
-parser.add_argument("-i", "--image-path", help="the path to the retinal image to be processed")
+    "-t",
+    "--threshold",
+    default=0.5,
+    type=float,
+    help="threshold to consider a window as tortuous",
+)
+parser.add_argument(
+    "-i", "--image-path", help="the path to the retinal image to be processed"
+)
 parser.add_argument("-w", "--window-size", default=56, type=int, help="the window size")
 parser.add_argument(
     "-wcm",
     "--window-creation-method",
     default="combined",
-    help="the window creation mode, can be separated or combined")
+    help="the window creation mode, can be separated or combined",
+)
 
 args = parser.parse_args()
 
 # TODO: this should be able to process from a basic test, a RBG image, right now it will be on segmentation only
-image = Image.open('../images/007-2489-100.png').convert('L')
+image = Image.open("../images/007-2489-100.png").convert("L")
 evaluation = {"success": False}
 
 if args.algorithm == "TD":
@@ -51,7 +60,8 @@ if args.algorithm == "TD":
         window_size=args.window_size,
         min_pixels=10,
         creation_method=args.window_creation_method,
-        threshold=args.threshold)
+        threshold=args.threshold,
+    )
 
 encoder = json.JSONEncoder()
 print(encoder.encode(evaluation))
