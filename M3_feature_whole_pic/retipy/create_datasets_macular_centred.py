@@ -107,7 +107,6 @@ Binary_PATH = (
 )
 
 for filename in sorted(glob.glob(os.path.join(Binary_PATH, "*.png"))):
-    print(filename)
     try:
         segmentedImage = retina.Retina(
             None,

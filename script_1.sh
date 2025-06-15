@@ -1,7 +1,7 @@
-export AUTOMORPH_DATA=$(pwd)/AUTOMORPH_DATA
+export CUDA_VISIBLE_DEVICES=1
 export PYTHONPATH=/home/xujia/miniconda3/envs/automorph/bin/python
 alias python=$PYTHONPATH
-export CUDA_VISIBLE_DEVICES=1
+export AUTOMORPH_DATA=$(pwd)/AUTOMORPH_DATA
 
 echo "### Generate resolution ###"
 python generate_resolution.py
@@ -26,14 +26,14 @@ sh M2_lwnet_disc_cup/test_outside.sh
 echo "### Done ###"
 
 # STEP 4 METRIC MEASUREMENT
-echo "### Feature measuring ###"
+echo "### Feature measuring 1 ###"
 python M3_feature_zone/retipy/create_datasets_disc_centred_B.py
 python M3_feature_zone/retipy/create_datasets_disc_centred_C.py
 python M3_feature_zone/retipy/create_datasets_macular_centred_B.py
 python M3_feature_zone/retipy/create_datasets_macular_centred_C.py
 echo "### Done ###"
 
-echo "### Feature measuring ###"
+echo "### Feature measuring 2 ###"
 python M3_feature_whole_pic/retipy/create_datasets_macular_centred.py
 python M3_feature_whole_pic/retipy/create_datasets_disc_centred.py
 echo "### Done ###"
